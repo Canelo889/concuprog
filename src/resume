@@ -627,6 +627,63 @@ public class ObserverPatternExample {
         subject.setState("New state!");
     }
 }
+
+
+
+Voici une implémentation possible de la gestion d'une connexion à une base de données en utilisant le Singleton et en assurant un accès sûr et thread-safe :
+
+```java
+public class DatabaseConnection {
+    private static volatile DatabaseConnection instance; // Utilisation de volatile pour assurer la visibilité entre threads
+    private static Object lock = new Object(); // Verrou pour le double verrouillage
+    private String url;
+    private String username;
+    private String password;
+
+    // Constructeur privé pour empêcher l'instanciation directe
+    private DatabaseConnection() {
+        // Initialisation de la connexion à la base de données
+        this.url = "jdbc:mysql://localhost:3306/mydatabase";
+        this.username = "username";
+        this.password = "password";
+    }
+
+    // Méthode pour obtenir l'instance unique du Singleton
+    public static DatabaseConnection getInstance() {
+        if (instance == null) {
+            synchronized (lock) {
+                if (instance == null) {
+                    instance = new DatabaseConnection();
+                }
+            }
+        }
+        return instance;
+    }
+
+    // Autres méthodes pour interagir avec la connexion à la base de données
+    public void connect() {
+        System.out.println("Connecting to database...");
+        // Code pour établir la connexion à la base de données
+        System.out.println("Connected to database: " + url);
+    }
+
+    public void disconnect() {
+        System.out.println("Disconnecting from database...");
+        // Code pour fermer la connexion à la base de données
+        System.out.println("Disconnected from database.");
+    }
+}
+```
+
+Dans cette implémentation :
+
+- Nous avons une classe `DatabaseConnection` qui représente notre Singleton pour gérer la connexion à la base de données.
+- Le constructeur est privé pour empêcher l'instanciation directe depuis l'extérieur de la classe.
+- La méthode `getInstance()` est statique et synchronisée pour assurer que l'accès à l'instance est thread-safe. Nous utilisons le double verrouillage pour minimiser les coûts de synchronisation une fois que l'instance a été créée.
+- Nous utilisons le mot-clé `volatile` pour la variable `instance` afin de garantir que les modifications apportées à cette variable sont visibles pour tous les threads.
+- Les autres méthodes de la classe (comme `connect()` et `disconnect()`) peuvent être utilisées pour interagir avec la connexion à la base de données une fois que l'instance Singleton est obtenue.
+
+Avec cette implémentation, chaque thread qui demande une instance de `DatabaseConnection` obtiendra la même instance unique, et l'accès à cette instance est thread-safe grâce à la synchronisation.
 ```
 
 Dans cet exemple :
@@ -636,3 +693,413 @@ Dans cet exemple :
 - `ConcreteSubject` est une implémentation concrète du sujet qui maintient une liste d'observateurs et les notifie lorsqu'un changement d'état se produit.
 - `ConcreteObserver` est une implémentation concrète d'un observateur qui réagit aux mises à jour du sujet en affichant un message.
 - Dans la classe `ObserverPatternExample`, nous créons un sujet, des observateurs, les enregistrons auprès du sujet, puis changeons l'état du sujet. Les observateurs sont automatiquement notifiés du changement d'état et réagissent en conséquence.
+
+Voici une implémentation possible du simulateur de système de surveillance de capteurs en utilisant le Observer Pattern et les Threads en Java :
+
+```java
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Random;
+
+// Sujet (Observable) : représente un capteur
+class Sensor implements Runnable {
+    private List<Observer> observers = new ArrayList<>();
+    private Random random = new Random();
+    private boolean running;
+
+    public void addObserver(Observer observer) {
+        observers.add(observer);
+    }
+
+    public void removeObserver(Observer observer) {
+        observers.remove(observer);
+    }
+
+    public void start() {
+        running = true;
+        new Thread(this).start();
+    }
+
+    public void stop() {
+        running = false;
+    }
+
+    @Override
+    public void run() {
+        while (running) {
+            int data = random.nextInt(100); // Génère des données aléatoires
+            notifyObservers(data); // Notifie les observateurs avec les nouvelles données
+            try {
+                Thread.sleep(1000); // Attente de 1 seconde entre chaque génération de données
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+            }
+        }
+    }
+
+    private void notifyObservers(int data) {
+        for (Observer observer : observers) {
+            observer.update(data);
+        }
+    }
+}
+
+// Observateur (Observer) : représente un module de traitement
+class Processor implements Observer {
+    private String name;
+
+    public Processor(String name) {
+        this.name = name;
+    }
+
+    @Override
+    public void update(int data) {
+        System.out.println(name + " received data: " + data);
+        // Effectue un traitement sur les données
+    }
+}
+
+// Interface Observer
+interface Observer {
+    void update(int data);
+}
+
+// Exemple d'utilisation du simulateur de système de surveillance de capteurs
+public class SensorSimulation {
+    public static void main(String[] args) {
+        Sensor sensor = new Sensor();
+
+        // Création de plusieurs observateurs (processors) et ajout à la liste des observateurs du capteur
+        Processor processor1 = new Processor("Processor 1");
+        Processor processor2 = new Processor("Processor 2");
+
+        sensor.addObserver(processor1);
+        sensor.addObserver(processor2);
+
+        // Démarrage du capteur (observable)
+        sensor.start();
+
+        // Attend quelques secondes avant d'arrêter la simulation
+        try {
+            Thread.sleep(5000);
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        }
+
+        // Arrêt du capteur (observable)
+        sensor.stop();
+    }
+}
+```
+
+Dans cette implémentation :
+
+- La classe `Sensor` représente le sujet (Observable) qui simule un capteur générant des données à intervalles réguliers.
+- Les observateurs (Observers) sont représentés par la classe `Processor`, qui réagit aux nouvelles données générées par le capteur.
+- Les observateurs sont exécutés dans des threads séparés lorsqu'ils sont ajoutés à la liste des observateurs du capteur.
+- Lorsque le capteur génère de nouvelles données, il notifie tous les observateurs en appelant leur méthode `update()`.
+- La classe `SensorSimulation` démontre l'utilisation du simulateur de système de surveillance de capteurs en créant un capteur, en ajoutant des observateurs, en démarrant le capteur, en attendant quelques secondes, puis en arrêtant le capteur.
+
+
+Voici une implémentation possible d'un proxy pour limiter l'accès concurrent à une ressource partagée en utilisant le Proxy Pattern et les Threads en Java :
+
+```java
+import java.util.concurrent.locks.Lock;
+import java.util.concurrent.locks.ReentrantLock;
+
+// Interface pour la ressource partagée
+interface Resource {
+    void accessResource();
+}
+
+// Classe concrète représentant la ressource partagée
+class ConcreteResource implements Resource {
+    @Override
+    public void accessResource() {
+        System.out.println("Accessing shared resource...");
+        // Code pour accéder à la ressource partagée
+        System.out.println("Done accessing shared resource.");
+    }
+}
+
+// Proxy pour limiter l'accès concurrent à la ressource partagée
+class ProxyResource implements Resource {
+    private Resource realResource;
+    private Lock lock = new ReentrantLock(); // Verrou pour contrôler l'accès concurrent
+
+    public ProxyResource() {
+        this.realResource = new ConcreteResource();
+    }
+
+    @Override
+    public void accessResource() {
+        lock.lock(); // Acquérir le verrou
+        try {
+            realResource.accessResource(); // Accès à la ressource partagée
+        } finally {
+            lock.unlock(); // Libérer le verrou
+        }
+    }
+}
+
+// Exemple d'utilisation du proxy pour limiter l'accès concurrent à la ressource partagée
+public class ProxyPatternWithThreads {
+    public static void main(String[] args) {
+        final int NUM_THREADS = 5;
+        ProxyResource proxy = new ProxyResource();
+
+        // Création et démarrage des threads pour accéder à la ressource partagée
+        for (int i = 0; i < NUM_THREADS; i++) {
+            Thread thread = new Thread(() -> proxy.accessResource());
+            thread.start();
+        }
+    }
+}
+```
+
+Dans cette implémentation :
+
+- L'interface `Resource` définit les opérations que les utilisateurs peuvent effectuer sur la ressource partagée.
+- La classe concrète `ConcreteResource` représente la ressource partagée réelle avec la méthode `accessResource()` qui accède à la ressource.
+- Le proxy `ProxyResource` contrôle l'accès à la ressource partagée en utilisant un verrou (`ReentrantLock`) pour garantir un accès concurrent sûr.
+- Dans la méthode `accessResource()` du proxy, le verrou est acquis avant d'accéder à la ressource réelle et est libéré après avoir terminé l'accès à la ressource.
+- Dans la classe `ProxyPatternWithThreads`, plusieurs threads sont créés pour accéder simultanément au proxy, ce qui démontre l'accès concurrent limité à la ressource partagée.
+
+
+Voici une implémentation possible du système de journalisation pour une application multi-thread en combinant le Singleton et le Observer Pattern en Java :
+
+```java
+import java.util.ArrayList;
+import java.util.List;
+
+// Singleton représentant le journal de l'application
+class Logger {
+    private static volatile Logger instance; // Utilisation de volatile pour garantir la visibilité entre threads
+    private List<Observer> observers = new ArrayList<>();
+
+    // Constructeur privé pour empêcher l'instanciation directe
+    private Logger() {}
+
+    // Méthode pour obtenir l'instance unique du Singleton
+    public static Logger getInstance() {
+        if (instance == null) {
+            synchronized (Logger.class) {
+                if (instance == null) {
+                    instance = new Logger();
+                }
+            }
+        }
+        return instance;
+    }
+
+    // Méthode pour ajouter un observateur au journal
+    public void addObserver(Observer observer) {
+        observers.add(observer);
+    }
+
+    // Méthode pour enlever un observateur du journal
+    public void removeObserver(Observer observer) {
+        observers.remove(observer);
+    }
+
+    // Méthode pour enregistrer un événement dans le journal
+    public void logEvent(String event) {
+        System.out.println("Logging event: " + event);
+        // Notifier tous les observateurs avec l'événement enregistré
+        notifyObservers(event);
+    }
+
+    // Méthode pour notifier tous les observateurs avec un événement
+    private void notifyObservers(String event) {
+        for (Observer observer : observers) {
+            observer.update(event);
+        }
+    }
+}
+
+// Interface pour les observateurs surveillant les événements de l'application
+interface Observer {
+    void update(String event);
+}
+
+// Observateur représentant un module de surveillance des erreurs
+class ErrorLogger implements Observer {
+    @Override
+    public void update(String event) {
+        if (event.contains("ERROR")) {
+            System.out.println("ErrorLogger: " + event);
+        }
+    }
+}
+
+// Observateur représentant un module de surveillance des performances
+class PerformanceLogger implements Observer {
+    @Override
+    public void update(String event) {
+        if (event.contains("PERFORMANCE")) {
+            System.out.println("PerformanceLogger: " + event);
+        }
+    }
+}
+
+// Exemple d'utilisation du système de journalisation pour une application multi-thread
+public class LoggingSystem {
+    public static void main(String[] args) {
+        Logger logger = Logger.getInstance();
+
+        // Ajout d'observateurs (modules de surveillance) au journal
+        logger.addObserver(new ErrorLogger());
+        logger.addObserver(new PerformanceLogger());
+
+        // Simulation de l'enregistrement d'événements dans l'application multi-thread
+        Thread thread1 = new Thread(() -> logger.logEvent("ERROR: Something went wrong!"));
+        Thread thread2 = new Thread(() -> logger.logEvent("INFO: Application started."));
+        Thread thread3 = new Thread(() -> logger.logEvent("PERFORMANCE: Processing took 500ms."));
+
+        thread1.start();
+        thread2.start();
+        thread3.start();
+    }
+}
+```
+
+Dans cette implémentation :
+
+- La classe `Logger` est un Singleton représentant le journal de l'application. Elle enregistre les événements de l'application et notifie les observateurs de ces événements.
+- Les observateurs (`ErrorLogger` et `PerformanceLogger`) surveillent différents aspects de l'application (erreurs et performances) et réagissent aux événements enregistrés dans le journal.
+- Les observateurs sont ajoutés au journal à l'aide de la méthode `addObserver()` et sont notifiés de chaque événement enregistré à l'aide de la méthode `notifyObservers()`.
+- Dans la classe `LoggingSystem`, plusieurs threads sont créés pour simuler l'enregistrement concurrent d'événements dans l'application, démontrant ainsi l'utilisation du système de journalisation dans un environnement multi-thread.
+
+
+Exercice combinant plusieurs Design Patterns :
+
+Demandez aux étudiants de concevoir et d'implémenter un système de traitement de commandes en ligne.
+Ils peuvent utiliser des design patterns tels que Factory Method pour créer différentes commandes, Singleton pour gérer le panier d'achats de l'utilisateur de manière unique, Observer pour suivre l'état de la commande en temps réel, etc.
+
+Voici une implémentation possible d'un système de traitement de commandes en ligne en combinant plusieurs design patterns en Java :
+
+```java
+import java.util.ArrayList;
+import java.util.List;
+
+// Produit représentant un article dans une commande
+class Product {
+    private String name;
+    private double price;
+
+    public Product(String name, double price) {
+        this.name = name;
+        this.price = price;
+    }
+
+    public String getName() {
+        return name;
+    }
+
+    public double getPrice() {
+        return price;
+    }
+}
+
+// Interface pour les commandes
+interface Order {
+    void addProduct(Product product);
+    double calculateTotal();
+}
+
+// Commande concrète
+class ConcreteOrder implements Order {
+    private List<Product> products = new ArrayList<>();
+
+    public void addProduct(Product product) {
+        products.add(product);
+    }
+
+    public double calculateTotal() {
+        double total = 0;
+        for (Product product : products) {
+            total += product.getPrice();
+        }
+        return total;
+    }
+}
+
+// Interface pour le panier d'achats
+interface ShoppingCart {
+    void addToCart(Product product);
+    double getTotal();
+}
+
+// Singleton représentant le panier d'achats de l'utilisateur
+class ShoppingCartManager implements ShoppingCart {
+    private static ShoppingCartManager instance;
+    private List<Product> cart = new ArrayList<>();
+
+    private ShoppingCartManager() {}
+
+    public static synchronized ShoppingCartManager getInstance() {
+        if (instance == null) {
+            instance = new ShoppingCartManager();
+        }
+        return instance;
+    }
+
+    public void addToCart(Product product) {
+        cart.add(product);
+    }
+
+    public double getTotal() {
+        double total = 0;
+        for (Product product : cart) {
+            total += product.getPrice();
+        }
+        return total;
+    }
+}
+
+// Observateur pour suivre l'état de la commande en temps réel
+class OrderObserver {
+    public void update(Order order) {
+        System.out.println("Order total: " + order.calculateTotal());
+    }
+}
+
+// Factory Method pour créer différentes commandes
+class OrderFactory {
+    public static Order createOrder() {
+        return new ConcreteOrder();
+    }
+}
+
+// Exemple d'utilisation du système de traitement de commandes en ligne
+public class OnlineOrderSystem {
+    public static void main(String[] args) {
+        // Création d'un produit
+        Product product1 = new Product("Product 1", 10.0);
+
+        // Ajout du produit au panier d'achats
+        ShoppingCart shoppingCart = ShoppingCartManager.getInstance();
+        shoppingCart.addToCart(product1);
+
+        // Calcul du total du panier d'achats
+        System.out.println("Total in shopping cart: " + shoppingCart.getTotal());
+
+        // Création d'une commande à partir du panier d'achats
+        Order order = OrderFactory.createOrder();
+        for (Product product : ((ShoppingCartManager) shoppingCart).cart) {
+            order.addProduct(product);
+        }
+
+        // Observateur pour suivre l'état de la commande en temps réel
+        OrderObserver observer = new OrderObserver();
+        observer.update(order);
+    }
+}
+```
+
+Dans cette implémentation :
+
+- Nous avons des classes représentant des produits, des commandes, un panier d'achats et un gestionnaire de panier d'achats en utilisant le Singleton.
+- Le Factory Method est utilisé pour créer différentes commandes.
+- Un observateur est utilisé pour suivre l'état de la commande en temps réel.
+- L'exemple d'utilisation dans la classe `OnlineOrderSystem` démontre comment ajouter des produits au panier d'achats, créer une commande à partir du panier d'achats, et suivre l'état de la commande à l'aide de l'observateur.
